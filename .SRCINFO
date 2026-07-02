@@ -43,7 +43,7 @@ pkgbase = opencharly-git
 	optdepends = openbsd-netcat: remote virt-manager/virt-viewer SPICE console over qemu+ssh (charly eval spice connects directly without it)
 	optdepends = go-task: provides /usr/bin/task for `task build:charly` and dev workflows from a source checkout
 	provides = charly
-	source = opencharly-git::git+file:///home/atrawog/Sync/Atrapub/overthink
+	source = opencharly-git::git+file:///home/atrawog/Sync/Atrapub/av/charly
 	sha256sums = SKIP
 
 pkgname = opencharly-git
