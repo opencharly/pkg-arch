@@ -1,0 +1,23 @@
+# Build artifacts
+*.pkg.tar.zst
+*.pkg.tar.xz
+*.pkg.tar.gz
+*.log
+opencharly-git/
+pkg/
+src/
+
+# ML model weights and training state (reproducible from notebooks)
+*.safetensors
+optimizer.pt
+scheduler.pt
+rng_state.pth
+scaler.pt
+pytorch_model*.bin
+*.gguf
+*.ckpt
+*.onnx
+*.h5
+
+# Syncthing conflict copies — per-machine, ephemeral, resolved by hand; never versioned.
+*.sync-conflict-*
