@@ -220,7 +220,13 @@ build() {
     plugins_list="${plugin_root%/candy}/pkg/host-command-plugins.txt"
     while read -r plugin; do
         case "${plugin}" in ''|\#*) continue ;; esac
-        ( cd "${plugin_root}/${plugin}" && GOWORK=off go build -trimpath -o "${srcdir}/${plugin}" . )
+        # Shape A plugins are an importable root package (a LIBRARY) whose runnable
+        # entrypoint is the ./cmd/serve shim; build that when present, else the root
+        # (mirrors the host buildPluginBinary auto-detect, plugin_loader.go). Building
+        # "." of a Shape A plugin would emit a non-exec .a archive → "exec format error".
+        local build_target="."
+        [ -d "${plugin_root}/${plugin}/cmd/serve" ] && build_target="./cmd/serve"
+        ( cd "${plugin_root}/${plugin}" && GOWORK=off go build -trimpath -o "${srcdir}/${plugin}" "${build_target}" )
         "${srcdir}/charly" __plugin-providers "${plugin_root}/${plugin}" > "${srcdir}/${plugin}.providers"
     done < "${plugins_list}"
 }
