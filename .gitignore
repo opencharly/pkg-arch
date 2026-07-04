@@ -4,6 +4,7 @@
 *.pkg.tar.gz
 *.log
 opencharly-git/
+opencharly-sdk/
 pkg/
 src/
 
