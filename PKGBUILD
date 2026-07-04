@@ -1,6 +1,6 @@
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
-pkgver=2026.182.0002
+pkgver=2026.185.0752
 pkgrel=1
 pkgdesc="OpenCharly container management CLI — compose, build, deploy container boxes from configurable candies"
 arch=('x86_64')
@@ -94,8 +94,28 @@ makedepends=(
     'curl'           # used by `task install`'s portable-fallback path on non-Arch
 )
 provides=('charly')
-source=("${pkgname}::git+file://$(realpath "${startdir}/../..")")
-sha256sums=('SKIP')
+# Two file:// sources: the superproject AND the sdk contract submodule
+# (github.com/opencharly/sdk, mounted at sdk/). makepkg's git+file:// clone of
+# the superproject does NOT populate submodules, and the standalone/AUR build()
+# path needs sdk/ present (charly's go.mod + every candy go.mod carry a
+# `replace github.com/opencharly/sdk => …/sdk` resolved against the clone).
+# prepare() wires the second source in as the submodule content.
+source=("${pkgname}::git+file://$(realpath "${startdir}/../..")"
+        "opencharly-sdk::git+file://$(realpath "${startdir}/../../sdk")")
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+    cd "${srcdir}/${pkgname}"
+    # Populate the sdk submodule from the second source. Guarded: a clone of a
+    # pre-sdk commit has no submodule mapping — nothing to do there. git >= 2.38
+    # blocks the file protocol by default; the explicit -c re-allows it for this
+    # local, same-machine wiring only.
+    if git config -f .gitmodules submodule.sdk.path >/dev/null 2>&1; then
+        git submodule init sdk
+        git config submodule.sdk.url "${srcdir}/opencharly-sdk"
+        git -c protocol.file.allow=always submodule update sdk
+    fi
+}
 
 pkgver() {
     # The package ships exactly ONE charly binary, so its OWN `charly version` IS
@@ -184,8 +204,8 @@ build() {
     #     Baking them makes `charly clean`/`settings`/`candy` resolve project-less. NOTE: `charly
     #     version` is DELIBERATELY NOT externalized — pkgver() (below) stamps the package version via
     #     `bin/charly version`, so version must stay a core command (unfixable chicken-and-egg).
-    # Each is built STANDALONE in its own module (GOWORK=off + its `replace …/charly =>
-    # ../../charly`), so a project-less HOST charly resolves/syscall.Exec's its commands from
+    # Each is built STANDALONE in its own module (GOWORK=off + its `replace github.com/opencharly/sdk =>
+    # ../../sdk`), so a project-less HOST charly resolves/syscall.Exec's its commands from
     # /usr/lib/charly/plugins without a project or toolchain. The .providers word manifest is the
     # SINGLE SOURCE for the WORDS (the same list emitBakedPlugins bakes into in-image manifests,
     # via the built charly's __plugin-providers introspection) — NOT the gRPC Describe, which omits
