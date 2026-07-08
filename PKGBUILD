@@ -100,8 +100,19 @@ provides=('charly')
 # path needs sdk/ present (charly's go.mod + every candy go.mod carry a
 # `replace github.com/opencharly/sdk => …/sdk` resolved against the clone).
 # prepare() wires the second source in as the submodule content.
-source=("${pkgname}::git+file://$(realpath "${startdir}/../..")"
-        "opencharly-sdk::git+file://$(realpath "${startdir}/../../sdk")")
+#
+# Each source is PINNED to its working-tree HEAD commit via #commit=<sha>.
+# Without the pin, makepkg's working-copy step (`git checkout -B makepkg
+# origin/HEAD`) FAILS with "fatal: invalid reference: origin/HEAD" whenever the
+# cloned repo is on a DETACHED HEAD (the sdk submodule detaches on every
+# `git submodule update` / gitlink-driven checkout) — the deterministic
+# in-guest/standalone localpkg build failure the concurrent bed roster surfaced.
+# Pinning to the exact commit sidesteps origin/HEAD entirely and makes the build
+# reproducible against the precise superproject + sdk commits.
+_charly_src="$(realpath "${startdir}/../..")"
+_sdk_src="$(realpath "${startdir}/../../sdk")"
+source=("${pkgname}::git+file://${_charly_src}#commit=$(git -C "${_charly_src}" rev-parse HEAD)"
+        "opencharly-sdk::git+file://${_sdk_src}#commit=$(git -C "${_sdk_src}" rev-parse HEAD)")
 sha256sums=('SKIP' 'SKIP')
 
 prepare() {
