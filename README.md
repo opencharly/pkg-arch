@@ -46,4 +46,7 @@ The package version mirrors the `charly version` CalVer format (`YYYY.DDD.HHMM`)
 
 ## AUR
 
-This package is maintained in the [opencharly/pkg-arch](https://github.com/opencharly/charly-arch) repository and mirrored to the AUR as [`opencharly-git`](https://aur.archlinux.org/packages/opencharly-git).
+This package is maintained in the
+[opencharly/pkg-arch](https://github.com/opencharly/pkg-arch) repository. It is
+LOCAL-ONLY, as noted above — it is not currently published to, or mirrored on,
+the AUR.
