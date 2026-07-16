@@ -86,12 +86,12 @@ optdepends=(
     'libsecret: secret-tool CLI + pinentry-qt Secret Service passphrase auto-retrieval; the bundled plugin-secrets credential store uses the pure-Go go-keyring D-Bus client'
     'dmidecode: SMBIOS inspection inside guests when debugging VM key-injection'
     'openbsd-netcat: remote virt-manager/virt-viewer SPICE console over qemu+ssh (charly eval spice connects directly without it)'
-    'go-task: provides /usr/bin/task for `task build:charly` and dev workflows from a source checkout'
+    'go-task: provides /usr/bin/task for `task build:binary` and dev workflows from a source checkout'
 )
 makedepends=(
     'go'
     'git'
-    'curl'           # used by `task install`'s portable-fallback path on non-Arch
+    'curl'           # used by `task build:install-portable`'s portable-fallback path on non-Arch
 )
 provides=('charly')
 # Two file:// sources: the superproject AND the sdk contract submodule
@@ -135,7 +135,7 @@ pkgver() {
     # charly_calver from srcdir/ resolves git to the pkg/arch SUBMODULE, a different
     # commit than the superproject where the charly source lives).
     #
-    # Local dev (`task build:charly`) hands us a pre-built, already-stamped
+    # Local dev (`task build:binary`) hands us a pre-built, already-stamped
     # bin/charly — the same binary build() installs below; its stamp is the pkgver
     # by construction. AUR/standalone has no bin/charly and builds from the cloned
     # charly source, where charly_calver derives the same commit-date CalVer

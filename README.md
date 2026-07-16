@@ -14,8 +14,11 @@ makepkg -si
 `makepkg -si` resolves the AUR-only mandatory deps (`cloudflared-bin`,
 `gvisor-tap-vsock`) via an AUR helper, or pre-install them first — see the
 `makedepends`/AUR notes in the PKGBUILD. From a full opencharly checkout, the
-equivalent one-liner is `cd pkg/arch && makepkg -si` (or `task build:charly` from
-the repo root, which runs the same `makepkg -sefi`).
+equivalent one-liner is `cd pkg/arch && makepkg -si`. There is no repo-root task
+that installs the pacman package for you: `task build:binary` is the per-worktree
+dev build and never touches the host, and `task build:pkg:arch` only builds the
+`.pkg.tar.zst` artifact into `dist/` without installing it — run `makepkg -si`
+directly (either form above) for a system install.
 
 ## Verify
 
@@ -43,4 +46,7 @@ The package version mirrors the `charly version` CalVer format (`YYYY.DDD.HHMM`)
 
 ## AUR
 
-This package is maintained in the [opencharly/pkg-arch](https://github.com/opencharly/charly-arch) repository and mirrored to the AUR as [`opencharly-git`](https://aur.archlinux.org/packages/opencharly-git).
+This package is maintained in the
+[opencharly/pkg-arch](https://github.com/opencharly/pkg-arch) repository. It is
+LOCAL-ONLY, as noted above — it is not currently published to, or mirrored on,
+the AUR.
