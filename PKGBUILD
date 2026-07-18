@@ -1,6 +1,6 @@
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
-pkgver=2026.185.0752
+pkgver=2026.198.1029
 pkgrel=1
 pkgdesc="OpenCharly container management CLI — compose, build, deploy container boxes from configurable candies"
 arch=('x86_64')
@@ -187,8 +187,8 @@ build() {
     #     CLI + GPG `.secrets` surface (the C2 dep-shed).
     #   - plugin-udev    — the `charly udev` GPU-device udev-rule manager (the first
     #     externalizable-command precedent; a pure command-only plugin).
-    #   - plugin-tmux    — the `charly tmux` persistent-session manager (the first WELDED-command
-    #     externalization; re-expresses each leaf as a `charly cmd`/`charly shell` shell-back).
+    # The typed terminal:tmux + agent-runtime:tmux providers are compiled into charly and use
+    # Provider.Channel, so no separate host command plugin is packaged for terminal control.
     #   - plugin-preempt — the `charly preempt` exclusive-resource lease inspector/recoverer (the
     #     second WELDED-command externalization; re-expresses each leaf as a shell-back to the
     #     in-core arbiter via the hidden `charly __preempt-status`/`__preempt-restore` verbs).
@@ -247,7 +247,7 @@ package() {
     # The bundled plugins + their `.providers` words manifests, beside the charly binary at the
     # FHS plugin dir (bakedPluginDir). discoverBakedPluginWords reads each manifest at startup to
     # register its words — command:secrets + verb:credential (plugin-secrets), command:udev
-    # (plugin-udev), command:tmux (plugin-tmux), command:preempt (plugin-preempt), command:feature
+    # (plugin-udev), command:preempt (plugin-preempt), command:feature
     # (plugin-feature), command:vm + verb:libvirt (plugin-vm), command:doctor (plugin-doctor),
     # command:clean (plugin-clean), command:settings (plugin-settings), command:candy (plugin-candy)
     # — WITHOUT connecting the plugin; the lazy connect is paid only on first use.
