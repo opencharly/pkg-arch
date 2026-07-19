@@ -109,8 +109,8 @@ provides=('charly')
 # in-guest/standalone localpkg build failure the concurrent bed roster surfaced.
 # Pinning to the exact commit sidesteps origin/HEAD entirely and makes the build
 # reproducible against the precise superproject + sdk commits.
-_charly_src="$(realpath "${startdir}/../..")"
-_sdk_src="$(realpath "${startdir}/../../sdk")"
+_charly_src=${CHARLY_LOCALPKG_SOURCE_ROOT:-"$(realpath "${startdir}/../..")"}
+_sdk_src="$(realpath "${_charly_src}/sdk")"
 source=("${pkgname}::git+file://${_charly_src}#commit=$(git -C "${_charly_src}" rev-parse HEAD)"
         "opencharly-sdk::git+file://${_sdk_src}#commit=$(git -C "${_sdk_src}" rev-parse HEAD)")
 sha256sums=('SKIP' 'SKIP')
@@ -140,8 +140,8 @@ pkgver() {
     # by construction. AUR/standalone has no bin/charly and builds from the cloned
     # charly source, where charly_calver derives the same commit-date CalVer
     # build()'s ldflag will bake — so pkgver == `charly version` there too.
-    if [[ -x "${startdir}/../../bin/charly" ]]; then
-        "${startdir}/../../bin/charly" version 2>/dev/null
+    if [[ -x "${_charly_src}/bin/charly" ]]; then
+        "${_charly_src}/bin/charly" version 2>/dev/null
         return
     fi
     # shellcheck source=calver.sh
@@ -156,14 +156,14 @@ build() {
 
     # The makepkg source clones COMMITTED HEAD into ${srcdir}/${pkgname}, where an UNCOMMITTED
     # candy/plugin-* would be ABSENT — so the DEV plugin build must read the real WORKING tree,
-    # exactly as the charly DEV path installs the working-tree-built ${startdir}/../../bin/charly.
+    # exactly as the charly DEV path installs the working-tree-built ${_charly_src}/bin/charly.
     local worktree_root plugin_root
-    worktree_root="$(realpath "${startdir}/../..")"
+    worktree_root="${_charly_src}"
 
-    if [[ -f "${startdir}/../../bin/charly" ]]; then
+    if [[ -f "${_charly_src}/bin/charly" ]]; then
         # DEV (fast path): the pre-built working-tree charly is ALREADY stamped with
         # main.BuildCalVer by the Taskfile — install it. Build the plugins from the working tree.
-        install -Dm755 "${startdir}/../../bin/charly" "${srcdir}/charly"
+        install -Dm755 "${_charly_src}/bin/charly" "${srcdir}/charly"
         plugin_root="${worktree_root}/candy"
     else
         # Standalone/AUR: build charly from the committed clone. Stamp the binary's identity
