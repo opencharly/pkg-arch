@@ -26,6 +26,7 @@ depends=(
     'tailscale'
     'libarchive'     # bsdtar — reads .PKGINFO from a built .pkg.tar.zst in the localpkg dependency resolver (localpkg.go)
     'iproute2'       # ss — CDP/port readiness probes (cdp.go)
+    'tmux'           # tmux binary exec'd by the compiled-in terminal:tmux provider wherever its gRPC endpoint runs — including the HOST for local agent/terminal routes (charly tui, agent terminal on target: local)
     # --- Rootless podman runtime support ---
     # podman declares these as optdepends, but every realistic charly
     # workflow runs rootless and BREAKS without them. Promoting to
