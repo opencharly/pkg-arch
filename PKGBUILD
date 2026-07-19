@@ -1,6 +1,6 @@
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
-pkgver=2026.185.0752
+pkgver=2026.198.1029
 pkgrel=1
 pkgdesc="OpenCharly container management CLI — compose, build, deploy container boxes from configurable candies"
 arch=('x86_64')
@@ -26,6 +26,7 @@ depends=(
     'tailscale'
     'libarchive'     # bsdtar — reads .PKGINFO from a built .pkg.tar.zst in the localpkg dependency resolver (localpkg.go)
     'iproute2'       # ss — CDP/port readiness probes (cdp.go)
+    'tmux'           # tmux binary exec'd by the compiled-in terminal:tmux provider wherever its gRPC endpoint runs — including the HOST for local agent/terminal routes (charly tui, agent terminal on target: local)
     # --- Rootless podman runtime support ---
     # podman declares these as optdepends, but every realistic charly
     # workflow runs rootless and BREAKS without them. Promoting to
@@ -109,8 +110,8 @@ provides=('charly')
 # in-guest/standalone localpkg build failure the concurrent bed roster surfaced.
 # Pinning to the exact commit sidesteps origin/HEAD entirely and makes the build
 # reproducible against the precise superproject + sdk commits.
-_charly_src="$(realpath "${startdir}/../..")"
-_sdk_src="$(realpath "${startdir}/../../sdk")"
+_charly_src=${CHARLY_LOCALPKG_SOURCE_ROOT:-"$(realpath "${startdir}/../..")"}
+_sdk_src="$(realpath "${_charly_src}/sdk")"
 source=("${pkgname}::git+file://${_charly_src}#commit=$(git -C "${_charly_src}" rev-parse HEAD)"
         "opencharly-sdk::git+file://${_sdk_src}#commit=$(git -C "${_sdk_src}" rev-parse HEAD)")
 sha256sums=('SKIP' 'SKIP')
@@ -140,8 +141,8 @@ pkgver() {
     # by construction. AUR/standalone has no bin/charly and builds from the cloned
     # charly source, where charly_calver derives the same commit-date CalVer
     # build()'s ldflag will bake — so pkgver == `charly version` there too.
-    if [[ -x "${startdir}/../../bin/charly" ]]; then
-        "${startdir}/../../bin/charly" version 2>/dev/null
+    if [[ -x "${_charly_src}/bin/charly" ]]; then
+        "${_charly_src}/bin/charly" version 2>/dev/null
         return
     fi
     # shellcheck source=calver.sh
@@ -156,14 +157,14 @@ build() {
 
     # The makepkg source clones COMMITTED HEAD into ${srcdir}/${pkgname}, where an UNCOMMITTED
     # candy/plugin-* would be ABSENT — so the DEV plugin build must read the real WORKING tree,
-    # exactly as the charly DEV path installs the working-tree-built ${startdir}/../../bin/charly.
+    # exactly as the charly DEV path installs the working-tree-built ${_charly_src}/bin/charly.
     local worktree_root plugin_root
-    worktree_root="$(realpath "${startdir}/../..")"
+    worktree_root="${_charly_src}"
 
-    if [[ -f "${startdir}/../../bin/charly" ]]; then
+    if [[ -f "${_charly_src}/bin/charly" ]]; then
         # DEV (fast path): the pre-built working-tree charly is ALREADY stamped with
         # main.BuildCalVer by the Taskfile — install it. Build the plugins from the working tree.
-        install -Dm755 "${startdir}/../../bin/charly" "${srcdir}/charly"
+        install -Dm755 "${_charly_src}/bin/charly" "${srcdir}/charly"
         plugin_root="${worktree_root}/candy"
     else
         # Standalone/AUR: build charly from the committed clone. Stamp the binary's identity
@@ -187,8 +188,8 @@ build() {
     #     CLI + GPG `.secrets` surface (the C2 dep-shed).
     #   - plugin-udev    — the `charly udev` GPU-device udev-rule manager (the first
     #     externalizable-command precedent; a pure command-only plugin).
-    #   - plugin-tmux    — the `charly tmux` persistent-session manager (the first WELDED-command
-    #     externalization; re-expresses each leaf as a `charly cmd`/`charly shell` shell-back).
+    # The typed terminal:tmux + agent-runtime:tmux providers are compiled into charly and use
+    # Provider.Channel, so no separate host command plugin is packaged for terminal control.
     #   - plugin-preempt — the `charly preempt` exclusive-resource lease inspector/recoverer (the
     #     second WELDED-command externalization; re-expresses each leaf as a shell-back to the
     #     in-core arbiter via the hidden `charly __preempt-status`/`__preempt-restore` verbs).
@@ -247,7 +248,7 @@ package() {
     # The bundled plugins + their `.providers` words manifests, beside the charly binary at the
     # FHS plugin dir (bakedPluginDir). discoverBakedPluginWords reads each manifest at startup to
     # register its words — command:secrets + verb:credential (plugin-secrets), command:udev
-    # (plugin-udev), command:tmux (plugin-tmux), command:preempt (plugin-preempt), command:feature
+    # (plugin-udev), command:preempt (plugin-preempt), command:feature
     # (plugin-feature), command:vm + verb:libvirt (plugin-vm), command:doctor (plugin-doctor),
     # command:clean (plugin-clean), command:settings (plugin-settings), command:candy (plugin-candy)
     # — WITHOUT connecting the plugin; the lazy connect is paid only on first use.
