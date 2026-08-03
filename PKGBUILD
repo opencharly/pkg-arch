@@ -179,7 +179,7 @@ build() {
         local calver
         calver=$(cd "${srcdir}/${pkgname}" && charly_calver)
         ( cd "${srcdir}/${pkgname}/charly" \
-            && CGO_ENABLED=1 go build -trimpath -mod=readonly -ldflags "-X main.BuildCalVer=${calver}" -o "${srcdir}/charly" . )
+            && CGO_ENABLED=1 go build -buildvcs=false -trimpath -mod=readonly -ldflags "-X main.BuildCalVer=${calver}" -o "${srcdir}/charly" . )
         plugin_root="${srcdir}/${pkgname}/candy"
     fi
 
@@ -238,7 +238,11 @@ build() {
         # "." of a Shape A plugin would emit a non-exec .a archive → "exec format error".
         local build_target="."
         [ -d "${plugin_root}/${plugin}/cmd/serve" ] && build_target="./cmd/serve"
-        ( cd "${plugin_root}/${plugin}" && GOWORK=off go build -trimpath -o "${srcdir}/${plugin}" "${build_target}" )
+        # charly#178: -buildvcs=false unconditionally — the VCS stamp has zero consumers, and
+        # makepkg's srcdir checkout (a linked/partial git tree) hits Go's VCS-status-walk failure
+        # ("error obtaining VCS status: exit status 128") without it. Same standing rule as
+        # pluginBuildVCSFlagForContext, the Taskfile build, and the test helpers.
+        ( cd "${plugin_root}/${plugin}" && GOWORK=off go build -buildvcs=false -trimpath -o "${srcdir}/${plugin}" "${build_target}" )
         "${srcdir}/charly" __plugin-providers "${plugin_root}/${plugin}" > "${srcdir}/${plugin}.providers"
     done < "${plugins_list}"
 }
