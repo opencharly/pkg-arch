@@ -1,6 +1,6 @@
 # opencharly-arch
 
-Arch Linux packaging for [opencharly](https://github.com/opencharly/charly) — the candy-factory container CLI (`charly`).
+Arch Linux packaging for [opencharly](https://github.com/opencharly/charly) — the fully stocked gourmet kitchen for you and your agents (`charly`).
 
 ## Install
 
