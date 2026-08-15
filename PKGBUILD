@@ -2,7 +2,7 @@
 pkgname=opencharly-git
 pkgver=2026.198.1029
 pkgrel=1
-pkgdesc="OpenCharly container management CLI — compose, build, deploy container boxes from configurable candies"
+pkgdesc="OpenCharly CLI — the fully equipped factory floor for you and your agents: compose, build, deploy, and evaluate boxes from configurable candies"
 arch=('x86_64')
 url="https://github.com/opencharly/charly"
 license=('MIT')
