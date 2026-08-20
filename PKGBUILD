@@ -3,6 +3,7 @@
 # Final test with fixed body
 # Final test
 # Final test v2
+# Final test v3
 # Test: auto-merge pipeline with CHANGELOG
 # Retrigger with fixed body
 # Retrigger: verify check-run name fix
