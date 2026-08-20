@@ -1,5 +1,6 @@
 # Test: auto-merge pipeline
 # Trigger gate re-run after body fix
+# Test full auto-merge pipeline
 # Re-trigger with fixed auto-merge
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
