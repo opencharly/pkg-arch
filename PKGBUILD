@@ -1,6 +1,7 @@
 # Test: auto-merge pipeline with CHANGELOG
 # Retrigger with fixed body
 # Retrigger: verify check-run name fix
+# Retrigger with correct check-run name
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
 pkgver=2026.198.1029
