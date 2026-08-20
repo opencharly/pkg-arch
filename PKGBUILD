@@ -1,3 +1,4 @@
+# Test: auto-merge tag test
 # Test: clean check-run name (direct action pattern)
 # Retrigger with job name fix
 # Final test with fixed body
