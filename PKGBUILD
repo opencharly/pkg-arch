@@ -1,4 +1,5 @@
 # Test: auto-merge pipeline
+# Trigger gate re-run after body fix
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
 pkgver=2026.198.1029
