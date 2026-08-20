@@ -1,4 +1,5 @@
 # Test: auto-merge pipeline with CHANGELOG
+# Retrigger with fixed body
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
 pkgver=2026.198.1029
