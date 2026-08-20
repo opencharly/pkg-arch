@@ -1,3 +1,4 @@
+# Test: auto-merge pipeline
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
 pkgver=2026.198.1029
