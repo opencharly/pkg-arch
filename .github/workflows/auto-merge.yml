@@ -16,27 +16,74 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-      - name: Merge and tag
+          fetch-depth: 0
+      - name: Merge, rename CHANGELOG, tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR=$(gh api "/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" --jq '.[0].number // empty')
+          set -e
+          # Get PR number from head SHA
+          PR=$(gh api "/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
+            --jq '.[0].number // empty')
           if [ -z "$PR" ]; then
             echo "No open PR found for head SHA — already merged or not a PR branch"
             exit 0
           fi
-          MERGE_RESPONSE=$(gh api -X PUT "/repos/${{ github.repository }}/pulls/$PR/merge" \
-            -f merge_method="squash" \
-            -f commit_title="${{ github.event.workflow_run.display_title }}" 2>&1)
-          echo "$MERGE_RESPONSE"
-          MS=$(echo "$MERGE_RESPONSE" | jq -r '.sha // empty' 2>/dev/null)
-          if [ -z "$MS" ]; then
-            echo "Merge failed, trying auto-merge queue"
-            gh pr merge "$PR" --squash --auto --delete-branch=false
-            sleep 5
+          STATE=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.state')
+          MS=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.merge_commit.sha // empty')
+          if [ "$STATE" = "closed" ] && [ -n "$MS" ]; then
+            echo "PR #$PR already merged at $MS"
+            # Check if tag already exists
+            VER="v$(TZ=UTC0 git log -1 --date='format-local:%Y.%j.%H%M' --format='%cd' "$MS" 2>/dev/null)"
+            TAG_EXISTS=$(gh api "/repos/${{ github.repository }}/git/refs/tags/$VER" -q '.ref' 2>/dev/null || echo "")
+            if [ -z "$TAG_EXISTS" ]; then
+              gh api -X POST "/repos/${{ github.repository }}/git/refs" \
+                -f ref="refs/tags/$VER" -f sha="$MS" && echo "Tagged $VER"
+            else
+              echo "Tag $VER already exists"
+            fi
+            exit 0
+          fi
+          # Derive CalVer from current time
+          VER="v$(date -u +%Y.%j.%H%M)"
+          # Rename CHANGELOG placeholder if one exists
+          if ls CHANGELOG/*.md 2>/dev/null; then
+            for f in CHANGELOG/*.md; do
+              [ -f "$f" ] || continue
+              BASE=$(basename "$f" .md)
+              # Skip if already a proper CalVer filename
+              if echo "$BASE" | grep -qE '^[0-9]{4}\.[0-9]{3}\.[0-9]{4}$'; then
+                echo "CHANGELOG $f already has CalVer name — skipping rename"
+                continue
+              fi
+              NEW_VER="${VER#v}"
+              echo "Renaming $f -> CHANGELOG/$NEW_VER.md"
+              git mv "$f" "CHANGELOG/$NEW_VER.md"
+              sed -i "1s/.*/# $NEW_VER — auto-merge/" "CHANGELOG/$NEW_VER.md"
+              git add "CHANGELOG/$NEW_VER.md"
+              git commit -m "chore: rename CHANGELOG to $NEW_VER and update H1"
+              git push origin "${{ github.event.workflow_run.head_branch }}"
+              echo "CHANGELOG renamed to $NEW_VER, pushed to PR branch"
+            done
+          else
+            echo "No CHANGELOG directory or no files — skipping rename"
+          fi
+          # Enable auto-merge
+          echo "PR #$PR: enabling auto-merge"
+          gh pr merge "$PR" --squash --auto --delete-branch=false
+          # Wait for merge to complete
+          echo "Waiting for merge..."
+          for i in $(seq 1 60); do
+            STATE=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.state')
             MS=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.merge_commit.sha // empty')
-          fi
-          if [ -n "$MS" ]; then
-            gh api -X POST "/repos/${{ github.repository }}/git/refs" \
-              -f ref="refs/tags/$VER" -f sha="$MS" && echo "Tagged $VER at $MS"
-          fi
+            if [ "$STATE" = "closed" ] && [ -n "$MS" ]; then
+              TAG_VER="v$(TZ=UTC0 git log -1 --date='format-local:%Y.%j.%H%M' --format='%cd' "$MS" 2>/dev/null)"
+              echo "Merged at $MS — tagging $TAG_VER"
+              gh api -X POST "/repos/${{ github.repository }}/git/refs" \
+                -f ref="refs/tags/$TAG_VER" -f sha="$MS" && echo "Tagged $TAG_VER"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for merge"
+          exit 1
