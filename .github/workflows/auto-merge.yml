@@ -17,61 +17,55 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
-      - name: Merge, rename CHANGELOG, tag
+      - name: Rename CHANGELOG placeholder and merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          # Get PR number from head SHA
           PR=$(gh api "/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
             --jq '.[0].number // empty')
           if [ -z "$PR" ]; then
-            echo "No open PR found for head SHA — already merged or not a PR branch"
+            echo "No open PR found for head SHA"
             exit 0
           fi
           STATE=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.state')
-          MS=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.merge_commit.sha // empty')
-          if [ "$STATE" = "closed" ] && [ -n "$MS" ]; then
-            echo "PR #$PR already merged at $MS"
-            # Check if tag already exists
-            VER="v$(TZ=UTC0 git log -1 --date='format-local:%Y.%j.%H%M' --format='%cd' "$MS" 2>/dev/null)"
-            TAG_EXISTS=$(gh api "/repos/${{ github.repository }}/git/refs/tags/$VER" -q '.ref' 2>/dev/null || echo "")
-            if [ -z "$TAG_EXISTS" ]; then
-              gh api -X POST "/repos/${{ github.repository }}/git/refs" \
-                -f ref="refs/tags/$VER" -f sha="$MS" && echo "Tagged $VER"
-            else
-              echo "Tag $VER already exists"
+          if [ "$STATE" = "closed" ]; then
+            echo "PR #$PR is already closed — tagging if needed"
+            MS=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.merge_commit.sha // empty')
+            if [ -n "$MS" ]; then
+              VER="v$(TZ=UTC0 git log -1 --date='format-local:%Y.%j.%H%M' --format='%cd' "$MS" 2>/dev/null)"
+              TAG_EXISTS=$(gh api "/repos/${{ github.repository }}/git/refs/tags/$VER" -q '.ref' 2>/dev/null || echo "")
+              if [ -z "$TAG_EXISTS" ]; then
+                gh api -X POST "/repos/${{ github.repository }}/git/refs" \
+                  -f ref="refs/tags/$VER" -f sha="$MS" && echo "Tagged $VER"
+              fi
             fi
             exit 0
           fi
-          # Derive CalVer from current time
-          VER="v$(date -u +%Y.%j.%H%M)"
+          # Derive CalVer (used for both CHANGELOG rename and tag)
+          CALVER="$(date -u +%Y.%j.%H%M)"
           # Rename CHANGELOG placeholder if one exists
           if ls CHANGELOG/*.md 2>/dev/null; then
             for f in CHANGELOG/*.md; do
               [ -f "$f" ] || continue
               BASE=$(basename "$f" .md)
+              # Skip README
+              [ "$BASE" = "README" ] && continue
               # Skip if already a proper CalVer filename
-              if echo "$BASE" | grep -qE '^[0-9]{4}\.[0-9]{3}\.[0-9]{4}$'; then
-                echo "CHANGELOG $f already has CalVer name — skipping rename"
-                continue
-              fi
-              NEW_VER="${VER#v}"
-              echo "Renaming $f -> CHANGELOG/$NEW_VER.md"
-              git mv "$f" "CHANGELOG/$NEW_VER.md"
-              sed -i "1s/.*/# $NEW_VER — auto-merge/" "CHANGELOG/$NEW_VER.md"
-              git add "CHANGELOG/$NEW_VER.md"
-              git commit -m "chore: rename CHANGELOG to $NEW_VER and update H1"
-              git push origin "${{ github.event.workflow_run.head_branch }}"
-              echo "CHANGELOG renamed to $NEW_VER, pushed to PR branch"
+              echo "$BASE" | grep -qE '^[0-9]{4}\.[0-9]{3}\.[0-9]{4}$' && continue
+              # This is a placeholder — rename it
+              echo "Renaming $f -> CHANGELOG/$CALVER.md"
+              git mv "$f" "CHANGELOG/$CALVER.md"
+              sed -i "1s/.*/# $CALVER — auto-merge/" "CHANGELOG/$CALVER.md"
+              git add "CHANGELOG/$CALVER.md"
+              git commit -m "chore: rename CHANGELOG to $CALVER"
+              BRANCH=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.head.ref')
+              git push origin "HEAD:$BRANCH" && echo "CHANGELOG rename pushed to $BRANCH"
+              break
             done
-          else
-            echo "No CHANGELOG directory or no files — skipping rename"
           fi
-          # Enable auto-merge
           echo "PR #$PR: enabling auto-merge"
           gh pr merge "$PR" --squash --auto --delete-branch=false
-          # Wait for merge to complete
           echo "Waiting for merge..."
           for i in $(seq 1 60); do
             STATE=$(gh api "/repos/${{ github.repository }}/pulls/$PR" --jq '.state')
