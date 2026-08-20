@@ -1,6 +1,7 @@
 # Test: clean check-run name (direct action pattern)
 # Retrigger with job name fix
 # Final test with fixed body
+# Final test
 # Test: auto-merge pipeline with CHANGELOG
 # Retrigger with fixed body
 # Retrigger: verify check-run name fix
