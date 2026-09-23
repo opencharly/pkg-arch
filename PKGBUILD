@@ -44,6 +44,13 @@ depends=(
     # hard depends so a fresh install Just Works.
     'fuse-overlayfs' # rootless container storage driver
     'slirp4netns'    # rootless container networking
+    # --- nerdctl engine stack (plan/nerdctl-integration.md Phase 5) ---
+    # The opt-in nerdctl engine: nerdctl + CNI + rootlesskit + buildkit. Declared
+    # hard so `charly` can drive an engine: nerdctl deploy on a fresh install.
+    'nerdctl'
+    'cni-plugins'
+    'rootlesskit'
+    'buildkit'
     # --- VM cloud-image support (kind: vm entity; D2/D15/D17) ---
     'libisoburn'     # xorriso — NoCloud cidata seed ISO builder
     'cdrtools'       # genisoimage fallback for the seed ISO builder (cloud_init_iso.go probes xorriso → genisoimage → mkisofs)
