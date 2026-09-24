@@ -11,7 +11,7 @@
 # Retrigger: verify check-run name fix
 # Maintainer: Andreas Trawoeger <atrawog@opencharly.ai>
 pkgname=opencharly-git
-pkgver=2026.198.1029
+pkgver=2026.266.1710
 pkgrel=1
 pkgdesc="OpenCharly CLI — the fully equipped factory floor for you and your agents: compose, build, deploy, and evaluate boxes from configurable candies"
 arch=('x86_64')
@@ -44,6 +44,13 @@ depends=(
     # hard depends so a fresh install Just Works.
     'fuse-overlayfs' # rootless container storage driver
     'slirp4netns'    # rootless container networking
+    # --- nerdctl engine stack (plan/nerdctl-integration.md Phase 5) ---
+    # The opt-in nerdctl engine: nerdctl + CNI + rootlesskit + buildkit. Declared
+    # hard so `charly` can drive an engine: nerdctl deploy on a fresh install.
+    'nerdctl'
+    'cni-plugins'
+    'rootlesskit'
+    'buildkit'
     # --- VM cloud-image support (kind: vm entity; D2/D15/D17) ---
     'libisoburn'     # xorriso — NoCloud cidata seed ISO builder
     'cdrtools'       # genisoimage fallback for the seed ISO builder (cloud_init_iso.go probes xorriso → genisoimage → mkisofs)
@@ -122,10 +129,9 @@ provides=('charly')
 # Pinning to the exact commit sidesteps origin/HEAD entirely and makes the build
 # reproducible against the precise superproject + sdk commits.
 _charly_src=${CHARLY_LOCALPKG_SOURCE_ROOT:-"$(realpath "${startdir}/../..")"}
-_sdk_src="$(realpath "${_charly_src}/sdk")"
 source=("${pkgname}::git+file://${_charly_src}#commit=$(git -C "${_charly_src}" rev-parse HEAD)"
-        "opencharly-sdk::git+file://${_sdk_src}#commit=$(git -C "${_sdk_src}" rev-parse HEAD)")
-sha256sums=('SKIP' 'SKIP')
+        )
+sha256sums=('SKIP')
 
 prepare() {
     cd "${srcdir}/${pkgname}"
@@ -169,14 +175,17 @@ build() {
     # The makepkg source clones COMMITTED HEAD into ${srcdir}/${pkgname}, where an UNCOMMITTED
     # candy/plugin-* would be ABSENT — so the DEV plugin build must read the real WORKING tree,
     # exactly as the charly DEV path installs the working-tree-built ${_charly_src}/bin/charly.
-    local worktree_root plugin_root
+    # `src_root` is the superproject source the single-source plugin list is read from:
+    # the WORKING tree on the DEV path (the list is uncommitted-agnostic), the committed
+    # clone on the standalone/AUR path.
+    local worktree_root src_root
     worktree_root="${_charly_src}"
 
     if [[ -f "${_charly_src}/bin/charly" ]]; then
         # DEV (fast path): the pre-built working-tree charly is ALREADY stamped with
         # main.BuildCalVer by the Taskfile — install it. Build the plugins from the working tree.
         install -Dm755 "${_charly_src}/bin/charly" "${srcdir}/charly"
-        plugin_root="${worktree_root}/candy"
+        src_root="${worktree_root}"
     else
         # Standalone/AUR: build charly from the committed clone. Stamp the binary's identity
         # (`charly version` → main.BuildCalVer) with the commit-date CalVer so it equals the
@@ -191,7 +200,7 @@ build() {
         calver=$(cd "${srcdir}/${pkgname}" && charly_calver)
         ( cd "${srcdir}/${pkgname}/charly" \
             && CGO_ENABLED=1 go build -buildvcs=false -trimpath -mod=readonly -ldflags "-X main.BuildCalVer=${calver}" -o "${srcdir}/charly" . )
-        plugin_root="${srcdir}/${pkgname}/candy"
+        src_root="${srcdir}/${pkgname}"
     fi
 
     # Build the BUNDLED EXTERNALIZED plugins beside charly at /usr/lib/charly/plugins:
@@ -235,26 +244,24 @@ build() {
     # the CLI-served command words; discoverBakedPluginWords reads this at startup to register the
     # command/verb words WITHOUT connecting the plugin (the lazy connect is paid only on first use).
     #
-    # The plugin SET is the SINGLE SOURCE pkg/host-command-plugins.txt (R3) — the SAME list the
+    # The plugin SET is the SINGLE SOURCE scripts/host-command-plugins.txt (R3) — the SAME list the
     # fedora .rpm / debian .deb localpkg build_templates read, so the three package builders can
-    # never drift. It sits beside candy/ in the superproject (the working tree on the DEV path, the
-    # git clone on standalone/AUR), so it resolves as plugin_root's parent whichever path set it.
-    local plugins_list plugin
-    plugins_list="${plugin_root%/candy}/pkg/host-command-plugins.txt"
-    while read -r plugin; do
-        case "${plugin}" in ''|\#*) continue ;; esac
-        # Shape A plugins are an importable root package (a LIBRARY) whose runnable
-        # entrypoint is the ./cmd/serve shim; build that when present, else the root
-        # (mirrors the host buildPluginBinary auto-detect, plugin_loader.go). Building
-        # "." of a Shape A plugin would emit a non-exec .a archive → "exec format error".
-        local build_target="."
-        [ -d "${plugin_root}/${plugin}/cmd/serve" ] && build_target="./cmd/serve"
-        # charly#178: -buildvcs=false unconditionally — the VCS stamp has zero consumers, and
-        # makepkg's srcdir checkout (a linked/partial git tree) hits Go's VCS-status-walk failure
-        # ("error obtaining VCS status: exit status 128") without it. Same standing rule as
-        # pluginBuildVCSFlagForContext, the Taskfile build, and the test helpers.
-        ( cd "${plugin_root}/${plugin}" && GOWORK=off go build -buildvcs=false -trimpath -o "${srcdir}/${plugin}" "${build_target}" )
-        "${srcdir}/charly" __plugin-providers "${plugin_root}/${plugin}" > "${srcdir}/${plugin}.providers"
+    # never drift. Since the candy de-submodule cutover each welded plugin lives in its OWN repo
+    # (charly has no candy/ tree any more): the list carries `<name>@<tag>`, and we clone that repo
+    # at its pinned tag + build candy/<name> — exactly as the release-binary workflow does.
+    local plugins_list spec p ref d t
+    plugins_list="${src_root}/scripts/host-command-plugins.txt"
+    rm -rf "${srcdir}/.plugin-src"
+    mkdir -p "${srcdir}/.plugin-src"
+    while read -r spec; do
+        case "${spec}" in ''|\#*) continue ;; esac
+        p="${spec%@*}"; ref="${spec#*@}"
+        [ "${p}" != "${ref}" ] || { echo "host-command-plugins.txt: '${spec}' is not <name>@<tag>" >&2; exit 1; }
+        git clone --quiet --depth 1 --branch "${ref}" "https://github.com/opencharly/${p}.git" "${srcdir}/.plugin-src/${p}"
+        d="${srcdir}/.plugin-src/${p}/candy/${p}"
+        t="."; [ -d "${d}/cmd/serve" ] && t="./cmd/serve"
+        ( cd "${d}" && GOWORK=off go build -buildvcs=false -trimpath -o "${srcdir}/${p}" "${t}" )
+        "${srcdir}/charly" __plugin-providers "${d}" > "${srcdir}/${p}.providers"
     done < "${plugins_list}"
 }
 
