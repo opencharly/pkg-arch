@@ -2,7 +2,7 @@
 # charly_calver — the CalVer (YYYY.DDD.HHMM, UTC) that identifies a charly build.
 #
 # Single source of truth for the build-time version stamp, shared (R3) by:
-#   - pkg/arch/PKGBUILD   — pkgver() (pacman package version) + build() ldflags
+#   - pkg-arch/PKGBUILD   — pkgver() (pacman package version) + build() ldflags
 #   - scripts/bootstrap-charly.sh — the bootstrap build's ldflags injection
 #
 # Injected into the binary via `-ldflags "-X main.BuildCalVer=$(charly_calver)"` so
