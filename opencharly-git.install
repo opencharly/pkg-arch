@@ -1,13 +1,4 @@
 post_install() {
-    # Arch's go-task package installs /usr/bin/go-task (renamed to avoid
-    # conflict with taskwarrior). Create a /usr/local/bin/task symlink so
-    # the documented `task build:binary` command works out of the box.
-    # Skip if /usr/local/bin/task already exists (operator's choice or
-    # another package provides it).
-    if [ ! -e /usr/local/bin/task ] && [ -x /usr/bin/go-task ]; then
-        ln -sf /usr/bin/go-task /usr/local/bin/task 2>/dev/null || true
-    fi
-
     systemctl enable --now docker.service 2>/dev/null || true
     systemctl enable --now tailscaled.service 2>/dev/null || true
     systemctl enable --now virtqemud.socket 2>/dev/null || true

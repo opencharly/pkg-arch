@@ -2,14 +2,14 @@
 # charly_calver — the CalVer (YYYY.DDD.HHMM, UTC) that identifies a charly build.
 #
 # Single source of truth for the build-time version stamp, shared (R3) by:
-#   - pkg/arch/PKGBUILD   — pkgver() (pacman package version) + build() ldflags
-#   - taskfiles/Build.yml — `task build:binary` ldflags injection
+#   - pkg-arch/PKGBUILD   — pkgver() (pacman package version) + build() ldflags
+#   - scripts/bootstrap-charly.sh — the bootstrap build's ldflags injection
 #
 # Injected into the binary via `-ldflags "-X main.BuildCalVer=$(charly_calver)"` so
 # `charly version` reports a FROZEN, DETERMINISTIC build identity. The CalVer is
 # derived ONLY from the HEAD commit's UTC date — so EVERY binary built from the
-# same commit reports the IDENTICAL version: a dirty working-tree `task
-# build:binary`, the clean `git+file://` makepkg clone its `pkgver()` reads, and an
+# same commit reports the IDENTICAL version: a dirty working-tree
+# ./scripts/bootstrap-charly.sh, the clean `git+file://` makepkg clone its `pkgver()` reads, and an
 # AUR build all agree. The build clock is never consulted: the wall clock
 # identifies the MOMENT of a build, not its SOURCE, and that conflation is what
 # makes two builds of one commit disagree (e.g. `pacman` pkgver vs `charly version`)
@@ -31,7 +31,7 @@ charly_calver() {
 }
 
 # Direct execution (`bash calver.sh`) prints the value — convenient for the
-# Taskfile to capture in a $(...) without sourcing into its own shell.
+# bootstrap build to capture in a $(...) without sourcing into its own shell.
 if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
 	charly_calver
 fi
