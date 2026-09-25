@@ -14,11 +14,10 @@ makepkg -si
 `makepkg -si` resolves the AUR-only mandatory deps (`cloudflared-bin`,
 `gvisor-tap-vsock`) via an AUR helper, or pre-install them first — see the
 `makedepends`/AUR notes in the PKGBUILD. From a full opencharly checkout, the
-equivalent one-liner is `cd pkg/arch && makepkg -si`. There is no repo-root task
-that installs the pacman package for you: `task build:binary` is the per-worktree
-dev build and never touches the host, and `task build:pkg:arch` only builds the
-`.pkg.tar.zst` artifact into `dist/` without installing it — run `makepkg -si`
-directly (either form above) for a system install.
+equivalent one-liner is `cd pkg-arch && makepkg -si`. There is no repo-root task
+that installs the pacman package for you: `./scripts/bootstrap-charly.sh` builds
+the per-worktree dev binary (CalVer-stamped, never installed to the host), so
+`makepkg -si` (either form above) is the system install.
 
 ## Verify
 

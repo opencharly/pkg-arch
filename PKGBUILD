@@ -105,12 +105,11 @@ optdepends=(
     'libsecret: secret-tool CLI + pinentry-qt Secret Service passphrase auto-retrieval; the bundled plugin-secrets credential store uses the pure-Go go-keyring D-Bus client'
     'dmidecode: SMBIOS inspection inside guests when debugging VM key-injection'
     'openbsd-netcat: remote virt-manager/virt-viewer SPICE console over qemu+ssh (charly eval spice connects directly without it)'
-    'go-task: provides /usr/bin/task for `task build:binary` and dev workflows from a source checkout'
 )
 makedepends=(
     'go'
     'git'
-    'curl'           # used by `task build:install-portable`'s portable-fallback path on non-Arch
+    'curl'           # used by the bootstrap build's portable-fallback path on non-Arch
 )
 provides=('charly')
 # A single file:// source: the superproject. The sdk is no longer a charly
@@ -136,7 +135,7 @@ pkgver() {
     # charly_calver from srcdir/ resolves git against the clone, whose HEAD may not
     # be the commit the source tree carries).
     #
-    # Local dev (`task build:binary`) hands us a pre-built, already-stamped
+    # Local dev (`./scripts/bootstrap-charly.sh`) hands us a pre-built, already-stamped
     # bin/charly — the same binary build() installs below; its stamp is the pkgver
     # by construction. AUR/standalone has no bin/charly and builds from the cloned
     # charly source, where charly_calver derives the same commit-date CalVer
@@ -164,7 +163,7 @@ build() {
 
     if [[ -f "${_charly_src}/bin/charly" ]]; then
         # DEV (fast path): the pre-built working-tree charly is ALREADY stamped with
-        # main.BuildCalVer by the Taskfile — install it. Read the plugin LIST from the working tree
+        # main.BuildCalVer by ./scripts/bootstrap-charly.sh — install it. Read the plugin LIST from the working tree
         # (the plugins themselves are cloned from their own repos below).
         install -Dm755 "${_charly_src}/bin/charly" "${srcdir}/charly"
         src_root="${worktree_root}"
