@@ -112,6 +112,14 @@ makedepends=(
     'curl'           # used by the bootstrap build's portable-fallback path on non-Arch
 )
 provides=('charly')
+# This package installs the SAME /usr/bin/charly + /usr/lib/charly/plugins/* as the
+# published `charly` package (it is the local-dev SUPERSET of it), so pacman must be
+# authorized to overwrite those files. `provides` alone only satisfies a DEPENDENCY
+# on charly — it does NOT license a file overwrite; without `conflicts`/`replaces`
+# `makepkg -si` aborts on all 29 shared files ("exists in filesystem (owned by
+# charly)") and the only workaround is an undocumented manual `pacman -R charly`.
+conflicts=('charly')
+replaces=('charly')
 # A single file:// source: the superproject. The sdk is no longer a charly
 # submodule — it resolves from the Go proxy at the pinned go.mod require, so no
 # second source and no submodule wiring are needed.
