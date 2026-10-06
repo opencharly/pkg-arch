@@ -33,5 +33,10 @@ must     "build targets the plugin's candy/<name> dir"           'candy/${p}'
 must     "build roots the list on src_root (set on both branches)" 'src_root='
 must_not "the pre-cutover sdk submodule source is gone"          'opencharly-sdk::git+'
 must_not "no dead plugin_root assignment remains"                'plugin_root'
+# The package installs the SAME /usr/bin/charly + plugin files as the published
+# `charly` package. `provides` alone does not license the overwrite, so without the
+# conflicts/replaces pair `makepkg -si` aborts on 29 conflicting files (pkg-arch#28).
+must     "package declares conflicts with the repo charly"       "conflicts=('charly')"
+must     "package declares replaces for the repo charly"         "replaces=('charly')"
 
 exit "$rc"
