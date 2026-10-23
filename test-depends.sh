@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test-depends.sh — the pkg-arch-local gate for the PKGBUILD depends. It FAILS if
-# the nerdctl engine stack (nerdctl + cni-plugins + rootlesskit + buildkit) is
+# the containerd engine stack (the nerdctl CLI + cni-plugins + rootlesskit + buildkit) is
 # missing from the PKGBUILD's `depends` array. Run: `bash test-depends.sh`.
 set -euo pipefail
 
