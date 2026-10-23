@@ -44,9 +44,10 @@ depends=(
     # hard depends so a fresh install Just Works.
     'fuse-overlayfs' # rootless container storage driver
     'slirp4netns'    # rootless container networking
-    # --- nerdctl engine stack (plan/nerdctl-integration.md Phase 5) ---
-    # The opt-in nerdctl engine: nerdctl + CNI + rootlesskit + buildkit. Declared
-    # hard so `charly` can drive an engine: nerdctl deploy on a fresh install.
+    # --- containerd engine stack (plan/nerdctl-integration.md Phase 5) ---
+    # The opt-in containerd engine (driven through the nerdctl CLI): nerdctl + CNI
+    # + rootlesskit + buildkit. Declared hard so `charly` can drive an
+    # `engine: containerd` deploy on a fresh install.
     'nerdctl'
     'cni-plugins'
     'rootlesskit'

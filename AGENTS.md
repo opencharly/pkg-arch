@@ -14,7 +14,7 @@ Canonical files:
   and the build `ldflags`.
 - `opencharly-git.install` — the pacman install hooks.
 - `test-build-path.sh`, `test-depends.sh` — the repo-local gates for the
-  post-cutover `build()` layout and the mandatory nerdctl engine-stack depends.
+  post-cutover `build()` layout and the mandatory containerd engine-stack depends.
 - `CHANGELOG/` — history (one file per CalVer release).
 - `README.md` — user overview only; never agent guidance.
 
@@ -31,7 +31,7 @@ Canonical files:
   deps via an AUR helper).
 - `bash test-build-path.sh` — asserts the PKGBUILD uses the post-cutover layout
   (standalone plugin repos at their tags, no `opencharly-sdk` submodule source).
-- `bash test-depends.sh` — asserts the nerdctl engine stack (`nerdctl`,
+- `bash test-depends.sh` — asserts the containerd engine stack (`nerdctl`,
   `cni-plugins`, `rootlesskit`, `buildkit`) is in `depends`.
 - The merge gate is the **org-wide** `charly/pr-validator` (required check
   `validate / validate`, defined in `opencharly/.github`); this repo carries no
