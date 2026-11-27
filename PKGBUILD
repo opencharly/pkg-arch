@@ -13,7 +13,7 @@
 pkgname=opencharly-git
 pkgver=2026.266.1710
 pkgrel=1
-pkgdesc="OpenCharly CLI — the fully equipped factory floor for you and your agents: compose, build, deploy, and evaluate boxes from configurable candies"
+pkgdesc="OpenCharly CLI — The Agentic DevOps Factory for you and your agents: compose, build, deploy, and evaluate boxes from configurable candies"
 arch=('x86_64')
 url="https://github.com/opencharly/charly"
 license=('MIT')
