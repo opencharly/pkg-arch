@@ -1,6 +1,6 @@
 # opencharly-arch
 
-Arch Linux packaging for [opencharly](https://github.com/opencharly/charly) — the fully equipped factory floor for you and your agents (`charly`).
+Arch Linux packaging for [opencharly](https://github.com/opencharly/charly) — the agentic DevOps Factory for you and your agents (`charly`).
 
 ## Install
 
